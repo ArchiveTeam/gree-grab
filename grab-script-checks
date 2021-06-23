@@ -1,0 +1,6 @@
+format 0
+
+[[]]
+not regex .*view-source:.*
+#not regex .{300,} # Huge URLs, incl. big JS libraries
+
