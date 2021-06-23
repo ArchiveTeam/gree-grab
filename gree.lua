@@ -122,8 +122,6 @@ is_on_targeted = function(url)
 end
 
 allowed = function(url, parenturl)
-  assert(parenturl ~= nil)
-
   --print_debug("Checking " .. url)
 
   if start_urls_inverted[url] then
@@ -172,7 +170,6 @@ allowed = function(url, parenturl)
   if not is_on_targeted(url) then
     if not string.match(url, "^https?://[^/]*gree%.jp")
       and not string.match(url, "^https?://[^/]*gree%.net") then
-print(url)
       outlinks[url] = true
     end
     return false
@@ -370,52 +367,35 @@ wget.callbacks.httploop_result = function(url, err, http_stat)
     return wget.actions.ABORT
   end
 
-  local do_retry = false
-  local maxtries = 12
-  local url_is_essential = true
-
-  -- Whitelist instead of blacklist status codes
-  if status_code ~= 200
-    and is_on_targeted(url["url"])
-    and not (status_code == 404) -- Not going to bother testing extensively
-    and not (status_code >= 300 and status_code <= 399) then
-    print("Server returned " .. http_stat.statcode .. " (" .. err .. "). Sleeping.\n")
-    do_retry = true
-  end
-
-  if not is_on_targeted(url["url"]) then
-    maxtries = 2
-  end
-
-  if string.match(url["url"], "ajax%-module%-connector%.php$") and status_code == 500 then
-    url_is_essential = false
-  end
-
-
-  if do_retry then
+  if status_code == 0
+    or (status_code >= 400 and status_code ~= 404) then
+    io.stdout:write("Server returned " .. http_stat.statcode .. " (" .. err .. "). Sleeping.\n")
+    io.stdout:flush()
+    local maxtries = 1
+    if not allowed(url["url"], nil) then
+      maxtries = 3
+    end
     if tries >= maxtries then
-      print("I give up...\n")
+      io.stdout:write("I give up...\n")
+      io.stdout:flush()
       tries = 0
-      if not url_is_essential then
-        return wget.actions.EXIT
-      else
-        print("Failed on an essential URL, aborting...")
-        return wget.actions.ABORT
-      end
+      abort_item()
+      return wget.actions.ABORT
     else
-      sleep_time = math.floor(math.pow(2, tries))
+      os.execute("sleep " .. math.floor(math.pow(2, tries)))
       tries = tries + 1
+      return wget.actions.CONTINUE
     end
   end
 
+  tries = 0
 
-  if do_retry and sleep_time > 0.001 then
-    print("Sleeping " .. sleep_time .. "s")
+  local sleep_time = 0
+
+  if sleep_time > 0.001 then
     os.execute("sleep " .. sleep_time)
-    return wget.actions.CONTINUE
   end
 
-  tries = 0
   return wget.actions.NOTHING
 end
 
@@ -459,7 +439,7 @@ end
 
 
 wget.callbacks.finish = function(start_time, end_time, wall_time, numurls, total_downloaded_bytes, total_download_time)
-  queue_list_to(discovered_items, "gree-emxewc7kf772wfq")
+  queue_list_to(discovered_items, "gree2-emxewc7kf772wfq")
   queue_list_to(outlinks, "urls-zvn3fnnvby65mhc")
 end
 
