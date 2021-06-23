@@ -56,7 +56,7 @@ if not WGET_AT:
 #
 # Update this each time you make a non-cosmetic change.
 # It will be added to the WARC files and reported to the tracker.
-VERSION = '20210624.05'
+VERSION = '20210624.06'
 USER_AGENT = 'Archiveteam (https://wiki.archiveteam.org/; communicate at https://webirc.hackint.org/#ircs://irc.hackint.org/#archiveteam-bs)'
 TRACKER_ID = 'gree2'
 TRACKER_HOST = 'legacy-api.arpa.li'
