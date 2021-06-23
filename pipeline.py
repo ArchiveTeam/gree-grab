@@ -56,7 +56,7 @@ if not WGET_AT:
 #
 # Update this each time you make a non-cosmetic change.
 # It will be added to the WARC files and reported to the tracker.
-VERSION = '20210624.04'
+VERSION = '20210624.05'
 USER_AGENT = 'Archiveteam (https://wiki.archiveteam.org/; communicate at https://webirc.hackint.org/#ircs://irc.hackint.org/#archiveteam-bs)'
 TRACKER_ID = 'gree2'
 TRACKER_HOST = 'legacy-api.arpa.li'
@@ -185,6 +185,8 @@ def stats_id_function(item):
 
 class WgetArgs(object):
     def realize(self, item):
+        with open('user-agents.txt', 'r') as f:
+            USER_AGENT = random.choice(list(f)).strip()
         wget_args = [
             WGET_AT,
             '-U', USER_AGENT,
