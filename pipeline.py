@@ -172,7 +172,7 @@ class MaybeSendDoneToTracker(SendDoneToTracker):
 
 CWD = os.getcwd()
 PIPELINE_SHA1 = get_hash(os.path.join(CWD, 'pipeline.py'))
-LUA_SHA1 = get_hash(os.path.join(CWD, 'wikidot.lua'))
+LUA_SHA1 = get_hash(os.path.join(CWD, 'gree.lua'))
 
 def stats_id_function(item):
     d = {
@@ -192,7 +192,7 @@ class WgetArgs(object):
             '-nv',
             '--content-on-error',
             '--load-cookies', 'cookies.txt',
-            '--lua-script', 'wikidot.lua',
+            '--lua-script', 'gree.lua',
             '-o', ItemInterpolation('%(item_dir)s/wget.log'),
             '--no-check-certificate',
             '--output-document', ItemInterpolation('%(item_dir)s/wget.tmp'),
