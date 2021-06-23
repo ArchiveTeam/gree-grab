@@ -258,7 +258,7 @@ class WgetArgs(object):
 project = Project(
     title = 'GREE',
     project_html = '''
-    <img class="project-logo" alt="logo" src="https://wiki.archiveteam.org/images/6/66/Tinkercad_icon.png" height="50px"/>
+    <img class="project-logo" alt="logo" src="https://wiki.archiveteam.org/images/thumb/7/75/Gree-logo.png/320px-Gree-logo.png" height="50px"/>
     <h2>GREE <span class="links"><a href="https://gree.jp/">Website</a> &middot; <a href="http://tracker.archiveteam.org/gree/">Leaderboard</a></span></h2>
     ''',)
 
