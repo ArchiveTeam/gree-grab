@@ -56,9 +56,8 @@ if not WGET_AT:
 #
 # Update this each time you make a non-cosmetic change.
 # It will be added to the WARC files and reported to the tracker.
-VERSION = '20210624.01'
+VERSION = '20210624.02'
 USER_AGENT = 'Archiveteam (https://wiki.archiveteam.org/; communicate at https://webirc.hackint.org/#ircs://irc.hackint.org/#archiveteam-bs)'
-#USER_AGENT = 'Do not use this in production'
 TRACKER_ID = 'gree'
 TRACKER_HOST = 'legacy-api.arpa.li'
 MULTI_ITEM_SIZE = 1
@@ -95,8 +94,8 @@ class CheckIP(SimpleTask):
                     'Are you behind a firewall/proxy? That is a big no-no!')
                 raise Exception(
                     'Are you behind a firewall/proxy? That is a big no-no!')
-            
-            
+
+
             # NEW for 2021! More network checks
             # 1 - TOR
             if "Congratulations" in requests.get("https://check.torproject.org/").text:
@@ -214,12 +213,12 @@ class WgetArgs(object):
             '--warc-header', 'x-wget-at-project-name: ' + TRACKER_ID,
             '--warc-dedup-url-agnostic',
         ]
-        
+
         item_names = item['item_name'].split('\0')
         item['item_name_newline'] = item['item_name'].replace('\0', '\n') # TODO is it safe to remove this?
         start_urls = []
         item_names_table = []
-        
+
         # Point of this function is to keep these together
         def set_start_url(item_type, item_value, start_url):
             start_urls.append(start_url)
@@ -238,7 +237,7 @@ class WgetArgs(object):
                 raise ValueError('item_type not supported.')
 
             item['item_name'] = '\0'.join(item_names_to_submit)
-            
+
             item['start_urls'] = json.dumps(start_urls)
             item['item_names_table'] = json.dumps(item_names_table)
 
@@ -257,7 +256,7 @@ class WgetArgs(object):
 # This will be shown in the warrior management panel. The logo should not
 # be too big. The deadline is optional.
 project = Project(
-    title = 'gree',
+    title = 'GREE',
     project_html = '''
     <img class="project-logo" alt="logo" src="https://wiki.archiveteam.org/images/6/66/Tinkercad_icon.png" height="50px"/>
     <h2>GREE <span class="links"><a href="https://gree.jp/">Website</a> &middot; <a href="http://tracker.archiveteam.org/gree/">Leaderboard</a></span></h2>

@@ -18,8 +18,9 @@ local downloaded = {}
 local addedtolist = {}
 local abortgrab = false
 
+local discovered_items = {}
+local outlinks = {}
 
-discovered_items = {}
 local last_main_site_time = 0
 local current_item_type = nil
 local current_item_value = nil
@@ -39,7 +40,7 @@ if urlparse == nil or http == nil then
   abortgrab = true
 end
 
-do_debug = true
+do_debug = false
 print_debug = function(a)
   if do_debug then
     print(a)
@@ -59,7 +60,7 @@ set_new_item = function(url)
     next_start_url_index = next_start_url_index + 1
     print_debug("Setting CIT to " .. current_item_type)
     print_debug("Setting CIV to " .. current_item_value)
-    
+
     if current_item_type == "user" then
       targeted_regex_prefix = "^https?://gree.jp/" .. current_item_value:gsub("%-", "%%-"):gsub("%.", "%%.")
       print_debug("TRP is " .. targeted_regex_prefix)
@@ -75,11 +76,6 @@ end
 discover_item = function(item_type, item_name)
   assert(item_type)
   assert(item_name)
-  
-  if item_type == "wiki" and item_name == "www.wikidot.com" then
-    return
-  end
-  
   if not discovered_items[item_type .. ":" .. item_name] then
     print_debug("Queuing for discovery " .. item_type .. ":" .. item_name)
   end
@@ -98,10 +94,6 @@ add_ignore = function(url)
   add_ignore(string.gsub(url, "^https", "http", 1))
   add_ignore(string.gsub(url, "^http:", "https:", 1))
   add_ignore(string.match(url, "^ +([^ ]+)"))
-  local protocol_and_domain_and_port = string.match(url, "^([a-zA-Z0-9]+://[^/]+)")
-  if protocol_and_domain_and_port then
-    add_ignore(protocol_and_domain_and_port .. "/")
-  end
   add_ignore(string.match(url, "^(.+)/$"))
 end
 
@@ -122,7 +114,8 @@ end
 
 is_on_targeted = function(url)
   if current_item_type == "user" then
-    return string.match(url, targeted_regex_prefix .. "/") or string.match(url, targeted_regex_prefix .. "$")
+    return string.match(url, targeted_regex_prefix .. "/")
+      or string.match(url, targeted_regex_prefix .. "$")
   else
     error("You need to implement is_on_targeted for this item type")
   end
@@ -130,13 +123,13 @@ end
 
 allowed = function(url, parenturl)
   assert(parenturl ~= nil)
-  
+
   --print_debug("Checking " .. url)
 
   if start_urls_inverted[url] then
     return false
   end
-  
+
   local tested = {}
   for s in string.gmatch(url, "([^/]+)") do
     if tested[s] == nil then
@@ -152,22 +145,22 @@ allowed = function(url, parenturl)
   if string.match(url, "^https?://[^/]%.nitropay%.com/") then
     return false
   end
-  
+
   -- Common resources and junk
   if string.match(url, "^https?://i%.gree%.jp/js/")
-  or string.match(url, "^https?://i%.gree%.jp/img/skin")
-  or string.match(url, "^https?://i%.gree%.jp/img/gree/")
-  or string.match(url, "^https?://i%.gree%.jp/[^/]+$") then
+    or string.match(url, "^https?://i%.gree%.jp/img/skin")
+    or string.match(url, "^https?://i%.gree%.jp/img/gree/")
+    or string.match(url, "^https?://i%.gree%.jp/[^/]+$") then
     return false
   end
-  
+
   -- Images
   if string.match(url, "^https?://[^/%.]+%.storage%.gree%.jp/")
-  or string.match(url, "^https?://i%.gree%.jp/")
-  or string.match(url, "^https?://aimg%-life%.gree%.jp/")then
+    or string.match(url, "^https?://i%.gree%.jp/")
+    or string.match(url, "^https?://aimg%-life%.gree%.jp/")then
     return true
   end
-    
+
   if current_item_type == "user" then
     local user = string.match(url, "^https?://gree%.jp/([a-zA-Z0-9_]+)")
     if user and user ~= current_item_value then
@@ -175,12 +168,15 @@ allowed = function(url, parenturl)
       return false
     end
   end
-  
-  
+
   if not is_on_targeted(url) then
+    if not string.match(url, "^https?://[^/]*gree%.jp")
+      and not string.match(url, "^https?://[^/]*gree%.net") then
+print(url)
+      outlinks[url] = true
+    end
     return false
   end
-  
 
   --print_debug("Allowed true on " .. url)
   return true
@@ -197,7 +193,6 @@ wget.callbacks.download_child_p = function(urlpos, parent, depth, start_url_pars
   end
   if allowed(url, parent["url"]) then
     addedtolist[url] = true
-    --set_derived_url(url)
     return true
   end
 
@@ -223,7 +218,6 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
     if (downloaded[url_] ~= true and addedtolist[url_] ~= true)
       and (allowed(url_, origurl) or force) then
       table.insert(urls, { url=url_ })
-      --set_derived_url(url_)
       addedtolist[url_] = true
       addedtolist[url] = true
     end
@@ -272,7 +266,7 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
       or string.match(newurl, "^android%-app:")
       or string.match(newurl, "^ios%-app:")
       or string.match(newurl, "^%${")) then
-      check(urlparse.absolute(url, "/" .. newurl))
+      check(urlparse.absolute(url, newurl))
     end
   end
 
@@ -281,7 +275,7 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
       html = read_file(file)
     end
   end
-  
+
   local find_least = function(s)
     -- \d{14}-\d{6}-\d{10}
     local least = nil
@@ -293,19 +287,19 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
     print_debug("Least is" .. least)
     return least
   end
-  
-  
+
+
   if current_item_type == "user" and status_code == 200 and string.match(url, targeted_regex_prefix .. "$") then
     load_html()
     user_id = string.match(html, "user_id=(%d+)")
-    assert(string.match(html, " u" .. user_id .. "\""))  
-    
+    assert(string.match(html, " u" .. user_id .. "\""))
+
     local least = find_least(html)
     if least then
       check("http://gree.jp/?action=api_stream_list&user_id=" .. user_id .. "&stream_id=stream_profile&start_key=" .. least .. "&offset=1", true)
     end
   end
-  
+
   if current_item_type == "user" and status_code == 200 and string.match(url, "^https?://gree%.jp/%?action=api_stream_list") then
     load_html()
     body = JSON:decode(html)["html"]
@@ -321,13 +315,11 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
       html = ""
     end
   end
-  
-  
 
   if status_code == 200 and not (string.match(url, "%.jpe?g$") or string.match(url, "%.png$"))
   and not string.match(url, "^https?://i%.gree%.jp/") then
     load_html()
-    
+
     --[[for newurl in string.gmatch(string.gsub(html, "&quot;", '"'), '([^"]+)') do
       checknewurl(newurl)
     end
@@ -362,12 +354,9 @@ wget.callbacks.httploop_result = function(url, err, http_stat)
   if status_code >= 300 and status_code <= 399 then
     local newloc = urlparse.absolute(url["url"], http_stat["newloc"])
     if downloaded[newloc] == true or addedtolist[newloc] == true
-      or not allowed(newloc, url["url"])
-      or (current_item_type == "wiki" and string.match(url["url"], targeted_regex_prefix .. "/$")) then
+      or not allowed(newloc, url["url"]) then
       tries = 0
       return wget.actions.EXIT
-    --[[else
-      set_derived_url(newloc)]]
     end
   end
 
@@ -380,17 +369,15 @@ wget.callbacks.httploop_result = function(url, err, http_stat)
     io.stdout:flush()
     return wget.actions.ABORT
   end
-  
+
   local do_retry = false
   local maxtries = 12
   local url_is_essential = true
 
   -- Whitelist instead of blacklist status codes
-  local is_valid_403 = current_item_type == "wiki" and string.match(url["url"], targeted_regex_prefix .. "/common%-%-")
   if status_code ~= 200
     and is_on_targeted(url["url"])
     and not (status_code == 404) -- Not going to bother testing extensively
-    and not (status_code == 403 and is_valid_403)
     and not (status_code >= 300 and status_code <= 399) then
     print("Server returned " .. http_stat.statcode .. " (" .. err .. "). Sleeping.\n")
     do_retry = true
@@ -399,8 +386,7 @@ wget.callbacks.httploop_result = function(url, err, http_stat)
   if not is_on_targeted(url["url"]) then
     maxtries = 2
   end
-  
-  -- revision_id=26219190&moduleName=history%2fPageVersionModule&callbackIndex=374&wikidot_token7=[token] 500s (checked 1 day delay) on wiki:cpp-wiki.wikidot.com if you make it get all versions
+
   if string.match(url["url"], "ajax%-module%-connector%.php$") and status_code == 500 then
     url_is_essential = false
   end
@@ -434,7 +420,7 @@ wget.callbacks.httploop_result = function(url, err, http_stat)
 end
 
 
-queue_list_to = function(list, endpoint)
+queue_list_to = function(list, key)
   if do_debug then
     for item, _ in pairs(list) do
       print("Would have sent discovered item " .. item)
@@ -455,14 +441,13 @@ queue_list_to = function(list, endpoint)
       local tries = 0
       while tries < 10 do
         local body, code, headers, status = http.request(
-          endpoint,
+          "http://blackbird-amqp.meo.ws:23038/" .. key .. "/",
           to_send
         )
         if code == 200 or code == 409 then
           break
         end
         os.execute("sleep " .. math.floor(math.pow(2, tries)))
-        print("Sleeping on queue to " .. endpoint)
         tries = tries + 1
       end
       if tries == 10 then
@@ -474,7 +459,8 @@ end
 
 
 wget.callbacks.finish = function(start_time, end_time, wall_time, numurls, total_downloaded_bytes, total_download_time)
-  queue_list_to(discovered_items, "http://example.com")
+  queue_list_to(discovered_items, "gree-emxewc7kf772wfq")
+  queue_list_to(outlinks, "urls-zvn3fnnvby65mhc")
 end
 
 wget.callbacks.write_to_warc = function(url, http_stat)
