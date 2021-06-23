@@ -300,21 +300,20 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
     user_id = string.match(html, "user_id=(%d+)")
     assert(string.match(html, " u" .. user_id .. "\""))  
     
-     local least = find_least(html)
-    if not least then
-      return
+    local least = find_least(html)
+    if least then
+      check("http://gree.jp/?action=api_stream_list&user_id=" .. user_id .. "&stream_id=stream_profile&start_key=" .. least .. "&offset=1", true)
     end
-    check("http://gree.jp/?action=api_stream_list&user_id=" .. user_id .. "&stream_id=stream_profile&start_key=" .. least .. "&offset=1", true)
   end
   
   if current_item_type == "user" and status_code == 200 and string.match(url, "^https?://gree%.jp/%?action=api_stream_list") then
     load_html()
     body = JSON:decode(html)["html"]
-    if body ~= "" then -- End
-      local offset = string.match(url, "offset=(%d+)$")
-      assert(offset)
-      local new_offset = tostring(tonumber(offset) + 1)
-      check((string.gsub(url, "offset=%d+$", "offset=" + new_offset)), true)
+    if body ~= "" then -- Else it has ended
+      local least = find_least(body)
+      if least then
+        check("http://gree.jp/?action=api_stream_list&user_id=" .. user_id .. "&stream_id=stream_profile&start_key=" .. least .. "&offset=1", true)
+      end
       for url in string.gmatch(body, '"(http.-)"') do
         print_debug("Checking " .. url .. " from body")
         check(url)

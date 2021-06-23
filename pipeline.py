@@ -17,6 +17,7 @@ import sys
 import time
 import string
 import json
+import requests
 
 import seesaw
 from seesaw.externalprocess import WgetDownload
